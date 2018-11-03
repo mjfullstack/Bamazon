@@ -1,3 +1,8 @@
+# My adds to "Node" initialized .gitignore file
+config.js
+package-lock.json
+
+
 # Logs
 logs
 *.log

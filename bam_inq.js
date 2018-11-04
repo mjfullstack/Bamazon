@@ -1,8 +1,8 @@
 // Load the NPM Package inquirer
 var inquirer = require("inquirer"); // This is an internal developer use case for getting info form terminal 
 var mysql = require("mysql");
-var config = require('./config.js'); // MY password for my connection to MySQL
-// var bamSql = require("./bam_sql.js");
+var config = require('./config.js'); // YOUR password for my connection to MySQL
+var itemsNumMax;
 
 console.log('BAM_INQ.JS is loaded');
 
@@ -44,15 +44,15 @@ methods.registerOrLogin = function() {
       type: "list",
       message: "Register or Login: ",
       name: "registerLogin",
-      choices: ["REGISTER", "LOGIN", "EXIT"]
+      choices: ["LOGIN", "REGISTER", "EXIT"]
     }
   ])
   .catch(function(error) {
     console.log(error);
   })
   .then(answer1 => {
-    console.log("answer1 = ", answer1);
-    console.log("answer1.registerLogin = " + answer1.registerLogin);
+    // console.log("answer1 = ", answer1);
+    // console.log("answer1.registerLogin = " + answer1.registerLogin);
 
     switch(answer1.registerLogin) {
       case "REGISTER" : methods.getUserInfo(answer1.registerLogin);
@@ -71,9 +71,9 @@ var username;
 var password;
 methods.getUserInfo = function(action) {
   if (action === "REGISTER") {
-    console.log("Registering New User...");
+    console.log("\nRegistering New User...");
   } else {
-    console.log("Enter Login Credentials...");
+    console.log("\nEnter Login Credentials...");
   }
   // Create a "Prompt" with a series of questions.
   inquirer
@@ -123,13 +123,12 @@ methods.getUserInfo = function(action) {
             } else {
               password = null;
               console.log("Registration FAILED. Passwords don't match.");
-              // Must RETRY...
-              return
+              console.log("Exiting...");
+              methods.closeConn();
             }
           })
         } else {
           console.log("Welcome Back, " + username + "!")
-          // methods.readItems( searchType, answer.searchTerm);
           methods.readItems( null, null);
         }
       });
@@ -137,12 +136,8 @@ methods.getUserInfo = function(action) {
 
   // c-R-ud: READ
   methods.readItems = function(searchType, searchTerm) {
-    // console.log("Selecting " + searchType + "s containing... " + searchTerm + "\n");
       var myQuery = connection.query(
-      // "SELECT * FROM bamazon_db.products WHERE " + searchType + " LIKE ?", // WORKS
-      // "%" + searchTerm + "%",
       "SELECT * FROM bamazon_db.products", // WHERE " + searchType + " LIKE ?", // WORKS
-      // "%" + searchTerm + "%",
       function(err, res) {
         if (err) {
           console.log(err);
@@ -152,6 +147,7 @@ methods.getUserInfo = function(action) {
         // console.log(myQuery.sql);
         // Log all results of the SELECT statement
         // console.log(res);
+        itemsNumMax = res.length;
         console.log("Item ID\t" + "Description\t\t\t\t\t\t" + "Category\t" + "Price\t\t" + "Qty In Stock");
         console.log("-------\t" + "-------------------------------------------\t\t" + "--------\t" + "-----\t\t" + "------------");
         res.map(function (item, index) {
@@ -192,20 +188,28 @@ methods.getItemQty = function() {
       // console.log("answer.itemToBuy: ", answer.itemToBuy, "answer.qtyToBuy: ", answer.qtyToBuy);
       var itemToBuy = parseInt(answer.itemToBuy); // "x" isNaN = true
       var qtyToBuy = parseInt(answer.qtyToBuy);
+      // console.log("itemToBuy: ", itemToBuy, "qtyToBuy: ", qtyToBuy);
       // console.log("Number.isNaN(itemToBuy): " + Number.isNaN(itemToBuy));
       // console.log("Number.isNaN(qtyToBuy): " + Number.isNaN(qtyToBuy));
       if (Number.isNaN(itemToBuy) && Number.isNaN(qtyToBuy) ) {
         console.log("Exiting...");
         methods.closeConn();
       } else {
-        // console.log("itemToBuy: ", itemToBuy, "qtyToBuy: ", qtyToBuy);
-        if ( !itemToBuy || !qtyToBuy) {
-          console.log("Must enter ITEM and QTY...");
+        if ( !itemToBuy || !qtyToBuy ||
+              itemToBuy > itemsNumMax) {
+          if (itemToBuy > itemsNumMax) {
+            console.log("\n--------------------------------------------------------------------------------");
+            console.log("Item ID must be equal to or less than " + itemsNumMax + ", the number of items we have...");
+            console.log("--------------------------------------------------------------------------------\n");
+          } else {
+            console.log("\n--------------------------------------------------------------------------------");
+            console.log("Must enter ITEM and QTY...");
+            console.log("--------------------------------------------------------------------------------\n");
+          }
           methods.getItemQty();
         } else {
           var myQuery = connection.query(
             "SELECT * FROM bamazon_db.products WHERE ?", // WORKS
-            // "SELECT * FROM bamazon_db.products", // WHERE " + searchType + " LIKE ?", // WORKS
             [
               {
                 item_id : itemToBuy
@@ -221,8 +225,10 @@ methods.getItemQty = function() {
             // Log all results of the SELECT statement
             // console.log(res);
             if (qtyToBuy > res[0].stock_quantity) {
+              console.log("\n--------------------------------------------------------------------------------");
               console.log("Insufficient Quantity in Stock, Sorry.");
-              console.log("Please look at our other items...")
+              console.log("Please reduce quantity or select one of our other items...")
+              console.log("--------------------------------------------------------------------------------\n");
               methods.readItems();
             } else {
               // console.log("res[0].item_id: ", res[0].item_id);

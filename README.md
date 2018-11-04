@@ -6,6 +6,7 @@ Backend of an Online Retailer via Inquirer
 * Clone Git Repo: https://github.com/mjfullstack/Bamazon
 * Edit configEDIT.js to use your own MySQL connection password
 * Save this as config.js
+* Execute npm install
 * bamazon.sql is the database schema. Run it in MySQL to create the database
 
 ## Program Execution

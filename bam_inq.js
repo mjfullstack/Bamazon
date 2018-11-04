@@ -1,8 +1,8 @@
 // Load the NPM Package inquirer
 var inquirer = require("inquirer"); // This is an internal developer use case for getting info form terminal 
 var mysql = require("mysql");
-var config = require('./config.js'); // MY password for my connection to MySQL
-// var bamSql = require("./bam_sql.js");
+var config = require('./config.js'); // YOUR password for my connection to MySQL
+var itemsNumMax;
 
 console.log('BAM_INQ.JS is loaded');
 
@@ -44,15 +44,15 @@ methods.registerOrLogin = function() {
       type: "list",
       message: "Register or Login: ",
       name: "registerLogin",
-      choices: ["REGISTER", "LOGIN", "EXIT"]
+      choices: ["LOGIN", "REGISTER", "EXIT"]
     }
   ])
   .catch(function(error) {
     console.log(error);
   })
   .then(answer1 => {
-    console.log("answer1 = ", answer1);
-    console.log("answer1.registerLogin = " + answer1.registerLogin);
+    // console.log("answer1 = ", answer1);
+    // console.log("answer1.registerLogin = " + answer1.registerLogin);
 
     switch(answer1.registerLogin) {
       case "REGISTER" : methods.getUserInfo(answer1.registerLogin);
@@ -60,8 +60,8 @@ methods.registerOrLogin = function() {
       case "LOGIN" : methods.getUserInfo(answer1.registerLogin);
         break;
       default : console.log("Exiting...");
-      // methods.closeConn
-        // break;
+        methods.closeConn();
+        break;
       }
   });
 };
@@ -71,9 +71,9 @@ var username;
 var password;
 methods.getUserInfo = function(action) {
   if (action === "REGISTER") {
-    console.log("Registering New User...");
+    console.log("\nRegistering New User...");
   } else {
-    console.log("Enter Login Credentials...");
+    console.log("\nEnter Login Credentials...");
   }
   // Create a "Prompt" with a series of questions.
   inquirer
@@ -95,9 +95,9 @@ methods.getUserInfo = function(action) {
       console.log(error);
     })
     .then(answer2 => {
-      console.log("answer2 = ", answer2);
-      console.log("answer2.user = " + answer2.user);
-      console.log("answer2.password = " + answer2.password);
+      // console.log("answer2 = ", answer2);
+      // console.log("answer2.user = " + answer2.user);
+      // console.log("answer2.password = " + answer2.password);
       username = answer2.user;
       password = answer2.password;
       if (action === "REGISTER") {
@@ -113,22 +113,22 @@ methods.getUserInfo = function(action) {
             console.log(error);
           })
           .then (answer3 => {
-            console.log("answer3 = ", answer3);
-            console.log("answer3.password2 = " + answer3.password2);
+            // console.log("answer3 = ", answer3);
+            // console.log("answer3.password2 = " + answer3.password2);
             if (password === answer3.password2) {
               console.log("Registration Complete, Passwords match. Account Created");
-              console.log("Username: "+ username);
-              console.log("Password: " + password);
+              // console.log("Username: "+ username);
+              // console.log("Password: " + password);
+              methods.readItems( null, null);
             } else {
               password = null;
               console.log("Registration FAILED. Passwords don't match.");
-              // Must RETRY...
-              return
+              console.log("Exiting...");
+              methods.closeConn();
             }
           })
         } else {
           console.log("Welcome Back, " + username + "!")
-          // methods.readItems( searchType, answer.searchTerm);
           methods.readItems( null, null);
         }
       });
@@ -136,24 +136,22 @@ methods.getUserInfo = function(action) {
 
   // c-R-ud: READ
   methods.readItems = function(searchType, searchTerm) {
-    // console.log("Selecting " + searchType + "s containing... " + searchTerm + "\n");
       var myQuery = connection.query(
-      // "SELECT * FROM bamazon_db.products WHERE " + searchType + " LIKE ?", // WORKS
-      // "%" + searchTerm + "%",
       "SELECT * FROM bamazon_db.products", // WHERE " + searchType + " LIKE ?", // WORKS
-      // "%" + searchTerm + "%",
       function(err, res) {
         if (err) {
           console.log(err);
           throw err;
         };
-        // logs the actual query being run
+        // logs the actual query being run 
         // console.log(myQuery.sql);
         // Log all results of the SELECT statement
         // console.log(res);
-        console.log("Item ID\t" + "Description\t\t\t\t\t" + "Category\t\t" + "Price\t\t" + "Qty In Stock");
+        itemsNumMax = res.length;
+        console.log("Item ID\t" + "Description\t\t\t\t\t\t" + "Category\t" + "Price\t\t" + "Qty In Stock");
+        console.log("-------\t" + "-------------------------------------------\t\t" + "--------\t" + "-----\t\t" + "------------");
         res.map(function (item, index) {
-          console.log(item.item_id + "\t" + item.product_name + "\t\t" + item.department_name + "\t", item.retail_price + "\t" + item.stock_quantity);
+          console.log(item.item_id + "\t" + item.product_name + "\t\t" + item.department_name + "\t" + item.retail_price + "\t\t" + item.stock_quantity);
           // INSERT INTO products (product_name, department_name, retail_price, stock_quantity)
         });
         // console.log("Enter Item ID to Add to Cart...");
@@ -165,7 +163,7 @@ methods.getUserInfo = function(action) {
   
 // c-R-ud: READ
 methods.getItemQty = function() {
-  console.log("getItemQty...");
+  // console.log("getItemQty...");
   // Use inquirer to get item to purchase and quantity
   // Create a "Prompt" with a series of questions.
   inquirer
@@ -173,13 +171,13 @@ methods.getItemQty = function() {
       // Here we create a basic text prompt.
       {
         type: "input",
-        message: "Enter Item ID to Add to Cart...",
+        message: "Enter Item ID to Add to Cart (Or x to Exit)...",
         name: "itemToBuy",
       },
       // Here we create a basic password-protected text prompt.
       {
         type: "input",
-        message: "Enter Quantity: ",
+        message: "Enter Quantity (Or x to confirm Exit...): ",
         name: "qtyToBuy"
       }
     ])
@@ -187,43 +185,66 @@ methods.getItemQty = function() {
       console.log(error);
     })
     .then(answer => {
-      console.log("answer.itemToBuy: ", answer.itemToBuy, "answer.qtyToBuy: ", answer.qtyToBuy);
-      var itemToBuy = eval(answer.itemToBuy);
-      var qtyToBuy = eval(answer.qtyToBuy);
-      console.log("itemToBuy: ", itemToBuy, "qtyToBuy: ", qtyToBuy);
-      if ( !itemToBuy || !qtyToBuy) {
-        console.log("Must enter ITEM and QTY...")
-        methods.getItemQty();
+      // console.log("answer.itemToBuy: ", answer.itemToBuy, "answer.qtyToBuy: ", answer.qtyToBuy);
+      var itemToBuy = parseInt(answer.itemToBuy); // "x" isNaN = true
+      var qtyToBuy = parseInt(answer.qtyToBuy);
+      // console.log("itemToBuy: ", itemToBuy, "qtyToBuy: ", qtyToBuy);
+      // console.log("Number.isNaN(itemToBuy): " + Number.isNaN(itemToBuy));
+      // console.log("Number.isNaN(qtyToBuy): " + Number.isNaN(qtyToBuy));
+      if (Number.isNaN(itemToBuy) && Number.isNaN(qtyToBuy) ) {
+        console.log("Exiting...");
+        methods.closeConn();
       } else {
-        var myQuery = connection.query(
-          "SELECT * FROM bamazon_db.products WHERE ?", // WORKS
-          // "SELECT * FROM bamazon_db.products", // WHERE " + searchType + " LIKE ?", // WORKS
-          [
-            {
-              item_id : itemToBuy
+        if ( !itemToBuy || !qtyToBuy ||
+              itemToBuy > itemsNumMax) {
+          if (itemToBuy > itemsNumMax) {
+            console.log("\n--------------------------------------------------------------------------------");
+            console.log("Item ID must be equal to or less than " + itemsNumMax + ", the number of items we have...");
+            console.log("--------------------------------------------------------------------------------\n");
+          } else {
+            console.log("\n--------------------------------------------------------------------------------");
+            console.log("Must enter ITEM and QTY...");
+            console.log("--------------------------------------------------------------------------------\n");
+          }
+          methods.getItemQty();
+        } else {
+          var myQuery = connection.query(
+            "SELECT * FROM bamazon_db.products WHERE ?", // WORKS
+            [
+              {
+                item_id : itemToBuy
+              }
+            ],
+          function(err, res) {
+            if (err) {
+              console.log(err);
+              throw err;
+            };
+            // logs the actual query being run
+            // console.log(myQuery);
+            // Log all results of the SELECT statement
+            // console.log(res);
+            if (qtyToBuy > res[0].stock_quantity) {
+              console.log("\n--------------------------------------------------------------------------------");
+              console.log("Insufficient Quantity in Stock, Sorry.");
+              console.log("Please reduce quantity or select one of our other items...")
+              console.log("--------------------------------------------------------------------------------\n");
+              methods.readItems();
+            } else {
+              // console.log("res[0].item_id: ", res[0].item_id);
+              console.log("\n--------------------------------------------------------------------------------");
+              console.log("You purchased item #" + res[0].item_id + ", " + res[0].product_name + ", QTY: " + qtyToBuy);
+              // console.log("Price Each: ", res[0].retail_price, "Quantity: ", qtyToBuy, "Total Cost: ", res[0].retail_price * qtyToBuy);
+              var totalCost = res[0].retail_price * qtyToBuy;
+              console.log("Total Cost: ", totalCost);
+              console.log("--------------------------------------------------------------------------------\n");
+              // Subtract QTY from the In-Stock Balance
+              var qtyLeft = res[0].stock_quantity - answer.qtyToBuy
+              // console.log("qtyLeft: " + qtyLeft);
+              methods.updateItemQty(itemToBuy, qtyLeft);
             }
-          ],
-        function(err, res) {
-          if (err) {
-            console.log(err);
-            throw err;
-          };
-          // logs the actual query being run
-          // console.log(myQuery);
-          // Log all results of the SELECT statement
-          // console.log(res);
-          console.log("res.item_id: ", res[0].item_id);
-          console.log("res.stock_quantity: ", res[0].stock_quantity);
-          console.log("Price Each: ", res[0].retail_price, "Quantity: ", qtyToBuy, "Total Cost: ", res[0].retail_price * qtyToBuy);
-          var totalCost = res[0].retail_price * qtyToBuy;
-          console.log("Total Cost: ", totalCost);
-          // Subtract QTY from the In-Stock Balance
-          var qtyLeft = res[0].stock_quantity - answer.qtyToBuy
-          console.log("qtyLeft: " + qtyLeft);
-          methods.updateItemQty(itemToBuy, qtyLeft);
-          // methods.closeConn();
-          // return [itemToBuy, qtyToBuy];
-        })
+          })
+        }
       }
     })
   }
@@ -274,12 +295,5 @@ methods.updateItemQty = function(itemId, qtyRemaining) {
       })
   })
 }
-
-
-
-
-
-
-
 
 module.exports = methods

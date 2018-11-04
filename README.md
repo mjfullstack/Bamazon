@@ -33,3 +33,7 @@ Backend of an Online Retailer via Inquirer
   * Alternatively, entering "x" for both these prompts will cleanly EXIT the program
   * Input validation ensures the two entries are numeric
   * A check is performed to ensure the item ID is less than the max items available
+
+## Video Demo
+
+* Link to Demo: https://drive.google.com/open?id=1Sg8JsbHW-C1lGXKOPLQCFcJiJHAyp73u
